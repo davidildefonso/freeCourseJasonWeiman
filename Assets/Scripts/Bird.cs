@@ -4,26 +4,66 @@ using UnityEngine;
 
 public class Bird : MonoBehaviour
 {
-    // Start is called before the first frame update
+    [SerializeField] float _launchForce = 500;
+    [SerializeField] float _maxDragDistance = 5;
+    Vector2 _startPosition;
+    Rigidbody2D _rigidbody2d;
+    SpriteRenderer _spriteRenderer;
+
+    void Awake()
+    {
+        _rigidbody2d = GetComponent<Rigidbody2D>();
+        _spriteRenderer = GetComponent<SpriteRenderer>();
+    }
+
+        // Start is called before the first frame update
     void Start()
     {
-         GetComponent<Rigidbody2D>().isKinematic= true;       
+        _startPosition = _rigidbody2d.position;
+         _rigidbody2d.isKinematic= true;       
     }
 
     void OnMouseDown()
     {
-        GetComponent<SpriteRenderer>().color =  Color.red;  // new Color(1,0,1);
+        _spriteRenderer.color =  Color.red;  // new Color(1,0,1);
     }
 
     void OnMouseUp()
     {
-        GetComponent<SpriteRenderer>().color =  Color.white; 
+        _spriteRenderer.color =  Color.white; 
+        Vector2 currentPosition = _rigidbody2d.position;
+        Vector2 direction = _startPosition-currentPosition;
+       
+        direction.Normalize();
+        _rigidbody2d.isKinematic= false;
+        _rigidbody2d.AddForce(direction*_launchForce);
+
     }
 
     void OnMouseDrag()
     {
         Vector3 mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-        transform.position =  new Vector3(mousePosition.x,mousePosition.y,transform.position.z);
+
+        Vector2 desiredPosition = mousePosition;
+        
+
+        float distance= Vector2.Distance(desiredPosition,_startPosition);
+        if(distance>_maxDragDistance)
+        {
+            Vector2 direction=desiredPosition-_startPosition;
+            direction.Normalize();
+            desiredPosition=_startPosition+ direction*_maxDragDistance;
+        }
+
+        if(desiredPosition.x>_startPosition.x)
+        {
+            desiredPosition.x = _startPosition.x;
+        }
+
+        _rigidbody2d.position= desiredPosition;
+
+        //transform.position =  new Vector3(mousePosition.x,mousePosition.y,transform.position.z);
+
     }
 
     // Update is called once per frame
@@ -31,4 +71,21 @@ public class Bird : MonoBehaviour
     {
 
     }
+
+    void OnCollisionEnter2D(Collision2D collision)
+    {
+
+        StartCoroutine(ResetAfterDelay());
+        
+    }
+
+    IEnumerator ResetAfterDelay()
+    {
+        yield return new WaitForSeconds(3);
+        _rigidbody2d.position= _startPosition;
+        _rigidbody2d.isKinematic= true;
+        _rigidbody2d.velocity = Vector2.zero;
+    }
+
+
 }
